@@ -1,8 +1,17 @@
 const { Builder, By, until } = require("selenium-webdriver");
+const chrome = require("selenium-webdriver/chrome");
 const fs = require("fs");
 
 async function scrapeBooks() {
-    let driver = await new Builder().forBrowser("chrome").build();
+    let options = new chrome.Options();
+    options.addArguments('--headless=new');          
+    options.addArguments('--no-sandbox');            
+    options.addArguments('--disable-dev-shm-usage'); 
+
+    let driver = await new Builder()
+        .forBrowser("chrome")
+        .setChromeOptions(options)
+        .build();
 
     let allBooks = [];
 
@@ -13,16 +22,13 @@ async function scrapeBooks() {
         let hasNext = true;
 
         while (hasNext) {
-            // attendre les livres
             await driver.wait(until.elementsLocated(By.css(".product_pod")), 5000);
-
             let books = await driver.findElements(By.css(".product_pod"));
 
             for (let book of books) {
                 let title = await book.findElement(By.css("h3 a")).getAttribute("title");
                 let price = await book.findElement(By.css(".price_color")).getText();
                 let stock = await book.findElement(By.css(".instock")).getText();
-
                 let ratingClass = await book.findElement(By.css("p.star-rating")).getAttribute("class");
 
                 let rating = "Unknown";
@@ -32,28 +38,20 @@ async function scrapeBooks() {
                 if (ratingClass.includes("Four")) rating = "4";
                 if (ratingClass.includes("Five")) rating = "5";
 
-                allBooks.push({
-                    title,
-                    price,
-                    stock,
-                    rating
-                });
+                allBooks.push({ title, price, stock, rating });
             }
 
             console.log(`Page scrapée: ${allBooks.length} livres récupérés`);
 
-            // bouton next
             let nextButton = await driver.findElements(By.css(".next a"));
-
             if (nextButton.length > 0) {
                 await nextButton[0].click();
-                await driver.sleep(1500); // petit delay pour stabilité
+                await driver.sleep(1500); 
             } else {
                 hasNext = false;
             }
         }
 
-        // sauvegarde JSON
         fs.writeFileSync("books.json", JSON.stringify(allBooks, null, 2));
         console.log("Scraping terminé ✅ fichier books.json créé");
 
