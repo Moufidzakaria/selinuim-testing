@@ -1,4 +1,3 @@
-
 Selenium Automation Testing Project 🚀
 
 📌 Description Ce projet contient des scripts d’automatisation de tests et de web scraping utilisant Selenium WebDriver avec Node.js. Il inclut :
