@@ -1,0 +1,61 @@
+name: Selenium Automated Tests and Scraping
+
+# Déclencheur : Azure Pipelines se lancera à chaque push sur la branche 'main' de GitHub
+trigger:
+  branches:
+    include:
+      - main
+
+# Se déclenche également lors des Pull Requests sur la branche 'main'
+pr:
+  branches:
+    include:
+      - main
+
+# Déclencheur planifié (Cron) : s'exécute tous les jours à minuit UTC
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily midnight run
+  branches:
+    include:
+      - main
+  always: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: RunSelenium
+  displayName: 'Run Selenium Tests from GitHub'
+  steps:
+  
+  # 1. Récupération automatique du code depuis GitHub
+  - checkout: self
+
+  # 2. Configuration de l'environnement Node.js
+  - task: NodeTool@0
+    displayName: 'Setup Node.js 20'
+    inputs:
+      versionSpec: '20.x'
+
+  # 3. Installation des dépendances
+  - script: |
+      npm init -y
+      npm install selenium-webdriver
+    displayName: 'Install dependencies'
+
+  # 4. Exécution du script de scraping Selenium
+  - script: |
+      node bokkscraping.js
+    displayName: 'Run Selenium Script'
+    env:
+      NODE_ENV: production
+
+  # 5. Sauvegarde des captures d'écran et fichiers JSON générés en tant qu'artefacts Azure
+  - task: PublishPipelineArtifact@1
+    displayName: 'Upload Artifacts'
+    condition: always() # S'exécute même si le script Selenium échoue
+    inputs:
+      targetPath: '$(Build.SourcesDirectory)'
+      artifact: 'selenium-results'
+      publishLocation: 'pipeline'
